@@ -1,0 +1,19 @@
+version: "2.1"
+services:
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    command: ./bin/api
+    ports:
+      - 9000:80
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    command: yarn build && rm -rf node_modules && yarn serve
+    ports:
+      - 8000:3000
+    depends_on:
+     - api
+

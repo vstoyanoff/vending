@@ -45,7 +45,8 @@ class User(BaseModel):
 class DBUser(User):
     id: str
     deposit: int
-    token: str
+    access_token: Optional[str]
+    token_type: Optional[str]
 
 
 class RegisterUser(User):
@@ -86,11 +87,6 @@ class BuyResponse(BaseModel):
     products: List[str]
     amount: int
     change: int
-
-
-class Token(BaseModel):
-    access_token: str
-    token_type: str
 
 
 class TokenData(BaseModel):

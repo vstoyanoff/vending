@@ -7,8 +7,8 @@ from jose import jwt, JWTError
 from passlib.context import CryptContext
 
 from vending.db import actions
-from vending.models import DBUser, Token, TokenData
-from vending.settings import ACCESS_TOKEN_EXPIRE_DAYS, ALGORITHM, SECRET_KEY
+from vending.models import DBUser, TokenData
+from vending.settings import ACCESS_TOKEN_EXPIRE_DAYS, ALGORITHM, SECRET_KEY, TOKEN_TYPE
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
@@ -50,7 +50,7 @@ def authorize_user(token: str = Depends(oauth2_scheme)) -> DBUser:
     if not user:
         raise credentials_exception
 
-    user = DBUser(**user.dict(exclude={"token"}), token=token)
+    user = DBUser(**user.dict(), access_token=token, token_type=TOKEN_TYPE)
     return user
 
 
@@ -77,7 +77,7 @@ def token(user: DBUser = Depends(authorize_user)):
     return user
 
 
-@router.post("/login", response_model=Token, tags=["auth"])
+@router.post("/login", response_model=DBUser, tags=["auth"])
 def login(form_data: OAuth2PasswordRequestForm = Depends()):
     user = actions.get_user(form_data.username)
     incorrect_credentials = HTTPException(
@@ -98,4 +98,10 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
         data={"sub": user.username}, expires_delta=access_token_expires
     )
 
-    return {"access_token": access_token, "token_type": "bearer"}
+    user = DBUser(
+        **user.dict(exclude={"access_token", "token_type"}),
+        access_token=access_token,
+        token_type=TOKEN_TYPE
+    )
+
+    return user

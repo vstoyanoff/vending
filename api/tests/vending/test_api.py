@@ -21,7 +21,7 @@ mock_db_user_buyer = DBUser(
     role="buyer",
     id=1,
     deposit=0,
-    token="test_token",
+    access_token="test_token",
 )
 
 mock_db_user_buyer_with_money = DBUser(
@@ -29,7 +29,7 @@ mock_db_user_buyer_with_money = DBUser(
     role="buyer",
     id=1,
     deposit=100,
-    token="test_token",
+    access_token="test_token",
 )
 
 mock_db_user_seller = DBUser(
@@ -37,7 +37,7 @@ mock_db_user_seller = DBUser(
     role="seller",
     id=1,
     deposit=0,
-    token="test_token",
+    access_token="test_token",
 )
 
 
@@ -83,7 +83,7 @@ class TestDeposit:
                         role="buyer",
                         id=1,
                         deposit=50,
-                        token="test_token",
+                        access_token="test_token",
                     )
                 )
 

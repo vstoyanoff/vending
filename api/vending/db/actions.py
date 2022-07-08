@@ -15,7 +15,12 @@ def get_user(username: str) -> DBUser:
     if not user:
         return None
 
-    return DBUser(id=user[0], username=user[1], deposit=user[2], role=user[3], token="")
+    return DBUser(
+        id=user[0],
+        username=user[1],
+        deposit=user[2],
+        role=user[3],
+    )
 
 
 def get_user_password(username: str) -> str:

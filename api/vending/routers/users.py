@@ -3,13 +3,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from vending.db import actions
 from vending.models import DBUser, DepositRequest, RegisterUser
-from vending.utils import validate_values
 from vending.routers.auth import (
     authorize_user,
     create_access_token,
     hash_password,
 )
-from vending.settings import ACCESS_TOKEN_EXPIRE_DAYS
+from vending.settings import ACCESS_TOKEN_EXPIRE_DAYS, TOKEN_TYPE
 
 router = APIRouter()
 
@@ -46,7 +45,7 @@ def create_user(user: RegisterUser):
     )
 
     user = actions.get_user(user.username)
-    user = DBUser(**user.dict(exclude={"token"}), token=access_token)
+    user = DBUser(**user.dict(), access_token=access_token, token_type=TOKEN_TYPE)
 
     return user
 

@@ -17,15 +17,27 @@ mock_db_product = DBProduct(
 )
 
 mock_db_user_buyer = DBUser(
-    username="test", password="test_pwd", role="buyer", id=1, deposit=0
+    username="test",
+    role="buyer",
+    id=1,
+    deposit=0,
+    token="test_token",
 )
 
 mock_db_user_buyer_with_money = DBUser(
-    username="test", password="test_pwd", role="buyer", id=1, deposit=100
+    username="test",
+    role="buyer",
+    id=1,
+    deposit=100,
+    token="test_token",
 )
 
 mock_db_user_seller = DBUser(
-    username="test", password="test_pwd", role="seller", id=1, deposit=0
+    username="test",
+    role="seller",
+    id=1,
+    deposit=0,
+    token="test_token",
 )
 
 
@@ -40,7 +52,7 @@ class TestDeposit:
     @mock.patch("vending.db.actions.deposit")
     def test_deposit_raises_400_for_seller(self, mock_db_deposit, fastapi_dep):
         with fastapi_dep(app).override({authorize_user: mock_db_user_seller}):
-            response = client.post("/deposit", json={"amount": 1})
+            response = client.post("/deposit", json={"amount": 5})
 
             assert response.status_code == 400
             assert response.json() == {
@@ -50,31 +62,30 @@ class TestDeposit:
     @pytest.mark.parametrize(
         "amount, detail",
         [
-            (-100, "deposit must be non-negative number"),
-            (200, "Can't deposit more than 100"),
+            (-100, "Amount can't be negative number"),
+            (30, "You can only deposit 5,10,20,50 or 100"),
+            (50, ""),
         ],
     )
     @mock.patch("vending.db.actions.deposit")
-    def test_deposit_raises_400_for_bad_amount(
-        self, mock_db_deposit, fastapi_dep, amount, detail
-    ):
+    def test_deposit(self, mock_db_deposit, fastapi_dep, amount, detail):
         with fastapi_dep(app).override({authorize_user: mock_db_user_buyer}):
             response = client.post("/deposit", json={"amount": amount})
 
-            assert response.status_code == 400
-            assert response.json() == {"detail": detail}
-
-    @mock.patch("vending.db.actions.deposit")
-    def test_deposit_200(self, mock_db_deposit, fastapi_dep):
-        with fastapi_dep(app).override({authorize_user: mock_db_user_buyer}):
-            response = client.post("/deposit", json={"amount": 5})
-
-            assert response.status_code == 200
-            mock_db_deposit.assert_called_with(
-                DBUser(
-                    username="test", password="test_pwd", role="buyer", id=1, deposit=5
+            if detail:
+                assert response.status_code == 422
+                assert response.json()["detail"][0]["msg"] == detail
+            else:
+                assert response.status_code == 200
+                mock_db_deposit.assert_called_with(
+                    DBUser(
+                        username="test",
+                        role="buyer",
+                        id=1,
+                        deposit=50,
+                        token="test_token",
+                    )
                 )
-            )
 
 
 class TestBuy:

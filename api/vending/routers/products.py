@@ -1,18 +1,20 @@
+from typing import List
+
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from vending.db import actions
-from vending.models import BuyRequest, BuyOperation, DBUser, DBProduct, User, Product
+from vending.models import BuyRequest, BuyResponse, DBUser, DBProduct, User, Product
 from vending.routers.auth import authorize_user
 
 router = APIRouter()
 
 
-@router.get("/products", tags=["products"])
+@router.get("/products", response_model=List[DBProduct], tags=["products"])
 def get_products(_=Depends(authorize_user)):
     return actions.get_products()
 
 
-@router.get("/products/{product_name}", tags=["products"])
+@router.get("/products/{product_name}", response_model=DBProduct, tags=["products"])
 def get_product(product_name: str, _=Depends(authorize_user)):
     product = actions.get_product(product_name)
 
@@ -25,7 +27,7 @@ def get_product(product_name: str, _=Depends(authorize_user)):
     return product
 
 
-@router.post("/products", tags=["products"])
+@router.post("/products", response_model=DBProduct, tags=["products"])
 def create_product(new_product: Product, user: User = Depends(authorize_user)):
     if user.role != "seller":
         raise HTTPException(
@@ -48,7 +50,7 @@ def create_product(new_product: Product, user: User = Depends(authorize_user)):
     return product
 
 
-@router.put("/products/{product_name}", tags=["products"])
+@router.put("/products/{product_name}", response_model=DBProduct, tags=["products"])
 def update_product(
     product_name: str,
     updated_product_data: Product,
@@ -68,10 +70,10 @@ def update_product(
 
     actions.update_product(updated_product)
 
-    return {"completed": True}
+    return updated_product
 
 
-@router.delete("/products/{product_name}", tags=["products"])
+@router.delete("/products/{product_name}", response_model=bool, tags=["products"])
 def delete_product(product_name: str, user: User = Depends(authorize_user)):
     db_product = actions.get_product(product_name)
 
@@ -83,10 +85,10 @@ def delete_product(product_name: str, user: User = Depends(authorize_user)):
 
     actions.delete_product(db_product.id)
 
-    return {"completed": True}
+    return True
 
 
-@router.post("/buy", tags=["products"])
+@router.post("/buy", response_model=BuyResponse, tags=["products"])
 def buy(buy_request: BuyRequest, user: DBUser = Depends(authorize_user)):
     if user.role != "buyer":
         raise HTTPException(
@@ -121,7 +123,7 @@ def buy(buy_request: BuyRequest, user: DBUser = Depends(authorize_user)):
     )
     actions.update_product(updated_product)
 
-    return BuyOperation(
+    return BuyResponse(
         total_spent=amount_to_pay,
         products=[product.product_name],
         amount=buy_request.amount,

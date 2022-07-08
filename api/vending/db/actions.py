@@ -1,11 +1,13 @@
 from typing import List
 
 from vending.db import execute, FetchType
-from vending.models import DBProduct, DBUser, Product, User
+from vending.models import DBProduct, DBUser, Product, RegisterUser
 
 
 def get_user(username: str) -> DBUser:
-    select_user_query = "SELECT * FROM users WHERE username = :username"
+    select_user_query = (
+        "SELECT id, username, deposit, role FROM users WHERE username = :username"
+    )
     user = execute(
         select_user_query, params={"username": username}, fetch=FetchType.FIRST
     )
@@ -13,12 +15,19 @@ def get_user(username: str) -> DBUser:
     if not user:
         return None
 
-    return DBUser(
-        id=user[0], username=user[1], password=user[2], deposit=user[3], role=user[4]
-    )
+    return DBUser(id=user[0], username=user[1], deposit=user[2], role=user[3], token="")
 
 
-def create_user(user: User):
+def get_user_password(username: str) -> str:
+    select_pwd_query = "SELECT password FROM users WHERE username = :username"
+    pwd = execute(
+        select_pwd_query, params={"username": username}, fetch=FetchType.FIRST
+    )[0]
+
+    return pwd
+
+
+def create_user(user: RegisterUser):
     create_user_sql = "INSERT INTO users(username, password, role) VALUES (:username, :password, :role)"  # noqa
     params = {"username": user.username, "password": user.password, "role": user.role}
     execute(create_user_sql, params)

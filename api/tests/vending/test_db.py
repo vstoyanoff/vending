@@ -1,5 +1,5 @@
 from vending.db import actions
-from vending.models import DBUser, User
+from vending.models import DBUser, RegisterUser
 
 
 class TestDB:
@@ -15,7 +15,7 @@ class TestDB:
 
     def test_create_user(self):
         actions.create_user(
-            User(username="another_user", password="not-secure", role="buyer")
+            RegisterUser(username="another_user", password="not-secure", role="buyer")
         )
 
         db_user = actions.get_user("another_user")

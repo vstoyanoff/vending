@@ -27,20 +27,12 @@ class DBProduct(Product):
 
 class User(BaseModel):
     username: str
-    password: str
     role: str
-    token: Optional[str]
 
     @validator("username")
     def validate_username(cls, v):
         if len(v) < 4:
             raise ValueError("Username must be at least 4 chars long")
-        return v
-
-    @validator("password")
-    def validate_password(cls, v):
-        if len(v) < 6:
-            raise ValueError("Password must be at least 6 chars long")
         return v
 
     @validator("role")
@@ -53,7 +45,29 @@ class User(BaseModel):
 class DBUser(User):
     id: str
     deposit: int
-    password: Optional[str]
+    token: str
+
+
+class RegisterUser(User):
+    password: str
+
+    @validator("password")
+    def validate_password(cls, v):
+        if len(v) < 6:
+            raise ValueError("Password must be at least 6 chars long")
+        return v
+
+
+class DepositRequest(BaseModel):
+    amount: int
+
+    @validator("amount")
+    def validate_cost(cls, v):
+        if v < 0:
+            raise ValueError("Amount can't be negative number")
+        elif v not in [5, 10, 20, 50, 100]:
+            raise ValueError("You can only deposit 5,10,20,50 or 100")
+        return v
 
 
 class BuyRequest(BaseModel):
@@ -67,11 +81,16 @@ class BuyRequest(BaseModel):
         return v
 
 
-class BuyOperation(BaseModel):
+class BuyResponse(BaseModel):
     total_spent: int
     products: List[str]
     amount: int
     change: int
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
 
 
 class TokenData(BaseModel):

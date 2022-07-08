@@ -7,10 +7,10 @@ from jose import jwt, JWTError
 from passlib.context import CryptContext
 
 from vending.db import actions
-from vending.models import DBUser, TokenData
+from vending.models import DBUser, Token, TokenData
 from vending.settings import ACCESS_TOKEN_EXPIRE_DAYS, ALGORITHM, SECRET_KEY
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -72,12 +72,12 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
 # Routes
 
 
-@router.get("/token", tags=["auth"])
+@router.get("/me", response_model=DBUser, tags=["auth"])
 def token(user: DBUser = Depends(authorize_user)):
-    return user.dict(exclude={"password"})
+    return user
 
 
-@router.post("/login", response_model=DBUser, tags=["auth"])
+@router.post("/login", response_model=Token, tags=["auth"])
 def login(form_data: OAuth2PasswordRequestForm = Depends()):
     user = actions.get_user(form_data.username)
     incorrect_credentials = HTTPException(
@@ -89,8 +89,8 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
     if not user:
         raise incorrect_credentials
 
-    hashed_password = hash_password(form_data.password)
-    if not _verify_password(form_data.password, hashed_password):
+    db_password = actions.get_user_password(user.username)
+    if not _verify_password(form_data.password, db_password):
         raise incorrect_credentials
 
     access_token_expires = timedelta(days=ACCESS_TOKEN_EXPIRE_DAYS)
@@ -98,6 +98,4 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
         data={"sub": user.username}, expires_delta=access_token_expires
     )
 
-    user = DBUser(**user.dict(exclude={"token"}), token=access_token)
-
-    return user.dict(exclude={"password"})
+    return {"access_token": access_token, "token_type": "bearer"}

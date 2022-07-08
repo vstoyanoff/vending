@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 
 export PATH="${PATH}:${PWD}"
-exec pydantic2ts --module $(dirname $PWD)/api/models.py --output $PWD/src/types.ts
+exec pydantic2ts --module $(dirname $PWD)/api/vending/models.py --output $PWD/src/types.ts

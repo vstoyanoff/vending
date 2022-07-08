@@ -27,7 +27,8 @@ export interface DBUser {
   role: string;
   id: string;
   deposit: number;
-  token: string;
+  access_token?: string;
+  token_type?: string;
 }
 export interface DepositRequest {
   amount: number;
@@ -41,10 +42,6 @@ export interface RegisterUser {
   username: string;
   role: string;
   password: string;
-}
-export interface Token {
-  access_token: string;
-  token_type: string;
 }
 export interface TokenData {
   username?: string;

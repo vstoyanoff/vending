@@ -21,7 +21,7 @@ function CreateForm({
   setProducts,
 }: {
   setShowCreateForm: React.Dispatch<React.SetStateAction<boolean>>;
-  setProducts: React.Dispatch<React.SetStateAction<DBProduct[] | null>>;
+  setProducts: React.Dispatch<React.SetStateAction<DBProduct[]>>;
 }) {
   const [newProduct, setNewProduct] = React.useState<IProduct>({
     product_name: '',
@@ -34,7 +34,7 @@ function CreateForm({
     try {
       const product = await postProduct(newProduct);
       setShowCreateForm(false);
-      setProducts((s) => (s ? [...s, product] : [product]));
+      setProducts((s) => [...s, product]);
     } catch (e: any) {
       setCreationError(e.toString());
     }
@@ -103,7 +103,7 @@ function CreateForm({
 const Main = () => {
   const { userDetails, setUserDetails, logout } = useAuth();
 
-  const [products, setProducts] = React.useState<DBProduct[] | null>(null);
+  const [products, setProducts] = React.useState<DBProduct[]>([]);
   const [showCreateForm, setShowCreateForm] = React.useState<boolean>(false);
   const [fundsToDeposit, setFundsToDeposit] = React.useState<number>(0);
 
@@ -135,24 +135,20 @@ const Main = () => {
   }
 
   async function delProduct(productName: string) {
-    await deleteProduct(productName);
-    const filteredProducts = products?.filter(
-      (product) => product.product_name !== productName
-    );
+    const success = await deleteProduct(productName);
 
-    setProducts(filteredProducts as DBProduct[]);
+    if (success) {
+      const filteredProducts = products.filter(
+        (product) => product.product_name !== productName
+      );
+
+      setProducts(filteredProducts);
+    }
   }
 
   async function addDeposit() {
-    await deposit(fundsToDeposit);
-    setUserDetails((u) =>
-      u
-        ? {
-            ...u,
-            deposit: u.deposit + fundsToDeposit,
-          }
-        : null
-    );
+    const user = await deposit(fundsToDeposit);
+    setUserDetails(user);
     setFundsToDeposit(0);
   }
 
@@ -232,7 +228,7 @@ const Main = () => {
           setProducts={setProducts}
         />
       )}
-      {products?.length ? (
+      {products.length ? (
         products.map((product) => (
           <Product
             key={product.id}

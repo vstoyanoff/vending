@@ -105,7 +105,7 @@ const SignupForm = ({
     }
 
     if (role === '') {
-      setError('You must select role');
+      setError('You must select a role');
       return;
     }
 

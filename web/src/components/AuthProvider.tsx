@@ -29,7 +29,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     const res = await apiSignup(username, password, role);
 
     await localStorage.removeItem(ACCESS_TOKEN_NAME);
-    await localStorage.setItem(ACCESS_TOKEN_NAME, res.token as string);
+    await localStorage.setItem(ACCESS_TOKEN_NAME, res.access_token as string);
 
     setUserDetails(res);
   }
@@ -43,7 +43,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     const res = await apiLogin(formData);
 
     await localStorage.removeItem(ACCESS_TOKEN_NAME);
-    await localStorage.setItem(ACCESS_TOKEN_NAME, res.token as string);
+    await localStorage.setItem(ACCESS_TOKEN_NAME, res.access_token as string);
 
     setUserDetails(res);
   }
@@ -65,7 +65,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 
         const res = await apiToken();
 
-        if (res.token) {
+        if (res.access_token) {
           setUserDetails(res);
         }
       })();

@@ -2,9 +2,9 @@ from fastapi.testclient import TestClient
 from unittest import mock
 import pytest
 
-from vending import app
-from vending.auth import authorize_user
+from vending.main import app
 from vending.models import DBUser, DBProduct
+from vending.routers.auth import authorize_user
 
 client = TestClient(app)
 
@@ -30,14 +30,14 @@ mock_db_user_seller = DBUser(
 
 
 class TestDeposit:
-    @mock.patch("vending.actions.deposit")
+    @mock.patch("vending.db.actions.deposit")
     def test_deposit_raises_422_for_no_data(self, mock_db_deposit, fastapi_dep):
         with fastapi_dep(app).override({authorize_user: mock_db_user_buyer}):
             response = client.post("/deposit")
 
             assert response.status_code == 422
 
-    @mock.patch("vending.actions.deposit")
+    @mock.patch("vending.db.actions.deposit")
     def test_deposit_raises_400_for_seller(self, mock_db_deposit, fastapi_dep):
         with fastapi_dep(app).override({authorize_user: mock_db_user_seller}):
             response = client.post("/deposit", json={"amount": 1})
@@ -54,7 +54,7 @@ class TestDeposit:
             (200, "Can't deposit more than 100"),
         ],
     )
-    @mock.patch("vending.actions.deposit")
+    @mock.patch("vending.db.actions.deposit")
     def test_deposit_raises_400_for_bad_amount(
         self, mock_db_deposit, fastapi_dep, amount, detail
     ):
@@ -64,7 +64,7 @@ class TestDeposit:
             assert response.status_code == 400
             assert response.json() == {"detail": detail}
 
-    @mock.patch("vending.actions.deposit")
+    @mock.patch("vending.db.actions.deposit")
     def test_deposit_200(self, mock_db_deposit, fastapi_dep):
         with fastapi_dep(app).override({authorize_user: mock_db_user_buyer}):
             response = client.post("/deposit", json={"amount": 5})
@@ -78,8 +78,8 @@ class TestDeposit:
 
 
 class TestBuy:
-    @mock.patch("vending.actions.deposit")
-    @mock.patch("vending.actions.update_product")
+    @mock.patch("vending.db.actions.deposit")
+    @mock.patch("vending.db.actions.update_product")
     def test_buy_raises_422_for_no_data(
         self, mock_db_update_product, mock_db_deposit, fastapi_dep
     ):
@@ -88,8 +88,8 @@ class TestBuy:
 
             assert response.status_code == 422
 
-    @mock.patch("vending.actions.deposit")
-    @mock.patch("vending.actions.update_product")
+    @mock.patch("vending.db.actions.deposit")
+    @mock.patch("vending.db.actions.update_product")
     def test_buy_raises_400_for_seller(
         self, mock_db_update_product, mock_db_deposit, fastapi_dep
     ):
@@ -103,9 +103,9 @@ class TestBuy:
                 "detail": "You must be a buyer in order to buy things and deposit coins"
             }
 
-    @mock.patch("vending.actions.get_product")
-    @mock.patch("vending.actions.deposit")
-    @mock.patch("vending.actions.update_product")
+    @mock.patch("vending.db.actions.get_product")
+    @mock.patch("vending.db.actions.deposit")
+    @mock.patch("vending.db.actions.update_product")
     def test_buy_raises_400_for_not_enough_units(
         self, mock_db_update_product, mock_db_deposit, mock_get_product, fastapi_dep
     ):
@@ -120,9 +120,9 @@ class TestBuy:
                 "detail": "There is not enough units of this product."
             }
 
-    @mock.patch("vending.actions.get_product")
-    @mock.patch("vending.actions.deposit")
-    @mock.patch("vending.actions.update_product")
+    @mock.patch("vending.db.actions.get_product")
+    @mock.patch("vending.db.actions.deposit")
+    @mock.patch("vending.db.actions.update_product")
     def test_buy_raises_400_for_not_enough_balance(
         self, mock_db_update_product, mock_db_deposit, mock_get_product, fastapi_dep
     ):
@@ -137,9 +137,9 @@ class TestBuy:
                 "detail": "You don't have enough coins to for this order."
             }
 
-    @mock.patch("vending.actions.get_product")
-    @mock.patch("vending.actions.deposit")
-    @mock.patch("vending.actions.update_product")
+    @mock.patch("vending.db.actions.get_product")
+    @mock.patch("vending.db.actions.deposit")
+    @mock.patch("vending.db.actions.update_product")
     def test_buy_200(
         self, mock_db_update_product, mock_db_deposit, mock_get_product, fastapi_dep
     ):

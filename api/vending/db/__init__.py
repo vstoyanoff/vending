@@ -3,7 +3,17 @@ from enum import Enum
 from typing import Union
 from sqlite3 import Error, Connection
 
-DB_NAME = "vending.sql"
+db = "vending.sql"
+
+
+def _get_db_name(db_name: str = ""):
+    global db
+
+    if not db_name:
+        return db
+
+    db = db_name
+    return db
 
 
 class FetchType(Enum):
@@ -16,7 +26,8 @@ def connect() -> Connection:
     """create a database connection to a SQLite database"""
     conn = None
     try:
-        conn = sqlite3.connect(DB_NAME)
+        db_name = _get_db_name()
+        conn = sqlite3.connect(db_name)
         return conn
     except Error as e:
         print(e)
@@ -47,9 +58,10 @@ def execute(
         raise e
 
 
-def setup():
+def setup(db: str = ""):
     try:
-        sqlite3.connect("file:vending.sql?mode=rw", uri=True)
+        db_name = _get_db_name(db)
+        sqlite3.connect(f"file:{db_name}?mode=rw", uri=True)
     except sqlite3.OperationalError:
         create_users_table_sql = """CREATE TABLE users(
             id INTEGER PRIMARY KEY AUTOINCREMENT,

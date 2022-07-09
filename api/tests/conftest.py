@@ -3,9 +3,11 @@ import os
 from vending.db import execute, setup
 
 
+TEST_DB = "test-db.sql"
+
 # init DB for tests
 def pytest_sessionstart(session):
-    setup()
+    setup(TEST_DB)
     execute(
         "INSERT INTO users(username, password, role) VALUES (:username, :password, :role)",
         {"username": "test_buyer", "password": "not-secure", "role": "buyer"},
@@ -27,4 +29,4 @@ def pytest_sessionstart(session):
 
 # clean up
 def pytest_sessionfinish(session, exitstatus):
-    os.remove("vending.sql")
+    os.remove(TEST_DB)

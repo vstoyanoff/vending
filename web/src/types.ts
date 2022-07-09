@@ -15,33 +15,25 @@ export interface BuyResponse {
   amount: number;
   change: number;
 }
-export interface DBProduct {
-  amount_available: number;
-  cost: number;
-  product_name: string;
-  id: string;
-  seller_id: string;
-}
-export interface DBUser {
-  username: string;
-  role: string;
-  id: string;
-  deposit: number;
-  access_token?: string;
-  token_type?: string;
-}
 export interface DepositRequest {
   amount: number;
 }
 export interface Product {
+  product_name: string;
   amount_available: number;
   cost: number;
-  product_name: string;
+  id: number;
+  seller_id: number;
 }
-export interface RegisterUser {
-  username: string;
-  role: string;
-  password: string;
+export interface ProductBase {
+  product_name: string;
+  amount_available: number;
+  cost: number;
+}
+export interface ProductCreate {
+  product_name: string;
+  amount_available: number;
+  cost: number;
 }
 export interface TokenData {
   username?: string;
@@ -49,4 +41,18 @@ export interface TokenData {
 export interface User {
   username: string;
   role: string;
+  id: number;
+  deposit: number;
+  products?: Product[];
+  access_token?: string;
+  token_type?: string;
+}
+export interface UserBase {
+  username: string;
+  role: string;
+}
+export interface UserCreate {
+  username: string;
+  role: string;
+  password: string;
 }

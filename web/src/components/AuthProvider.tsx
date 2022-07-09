@@ -7,26 +7,22 @@ import {
   ACCESS_TOKEN_NAME,
 } from '../apiClient';
 
-import { DBUser } from '../types';
+import { User, UserCreate } from '../types';
 
 interface IAuthContext {
-  userDetails: DBUser | null;
-  setUserDetails: React.Dispatch<React.SetStateAction<DBUser | null>>;
-  signup: (username: string, password: string, role: string) => Promise<void>;
+  userDetails: User | null;
+  setUserDetails: React.Dispatch<React.SetStateAction<User | null>>;
+  signup: (data: UserCreate) => Promise<void>;
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 const AuthContext = React.createContext<IAuthContext>(null!);
 
 function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [userDetails, setUserDetails] = React.useState<DBUser | null>(null);
+  const [userDetails, setUserDetails] = React.useState<User | null>(null);
 
-  async function signup(
-    username: string,
-    password: string,
-    role: string
-  ): Promise<void> {
-    const res = await apiSignup(username, password, role);
+  async function signup(data: UserCreate): Promise<void> {
+    const res = await apiSignup(data);
 
     await localStorage.removeItem(ACCESS_TOKEN_NAME);
     await localStorage.setItem(ACCESS_TOKEN_NAME, res.access_token as string);

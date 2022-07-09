@@ -14,16 +14,16 @@ import {
   buy,
 } from '../apiClient';
 
-import { DBProduct, Product as IProduct } from '../types';
+import { Product as IProduct, ProductCreate } from '../types';
 
 function CreateForm({
   setShowCreateForm,
   setProducts,
 }: {
   setShowCreateForm: React.Dispatch<React.SetStateAction<boolean>>;
-  setProducts: React.Dispatch<React.SetStateAction<DBProduct[]>>;
+  setProducts: React.Dispatch<React.SetStateAction<IProduct[]>>;
 }) {
-  const [newProduct, setNewProduct] = React.useState<IProduct>({
+  const [newProduct, setNewProduct] = React.useState<ProductCreate>({
     product_name: '',
     amount_available: 0,
     cost: 0,
@@ -103,7 +103,7 @@ function CreateForm({
 const Main = () => {
   const { userDetails, setUserDetails, logout } = useAuth();
 
-  const [products, setProducts] = React.useState<DBProduct[]>([]);
+  const [products, setProducts] = React.useState<IProduct[]>([]);
   const [showCreateForm, setShowCreateForm] = React.useState<boolean>(false);
   const [fundsToDeposit, setFundsToDeposit] = React.useState<number>(0);
 
@@ -113,7 +113,7 @@ const Main = () => {
 
   async function buyProduct(productName: string, amount: number) {
     if (products && products.length) {
-      const res = await buy(productName, amount);
+      const res = await buy({ product_name: productName, amount });
       const copyProducts = [...products];
       const product = copyProducts.find((p) => p.product_name === productName);
 

@@ -1,4 +1,11 @@
-import { BuyResponse, DBProduct, DBUser, Product } from './types';
+import {
+  BuyRequest,
+  BuyResponse,
+  Product,
+  ProductCreate,
+  User,
+  UserCreate,
+} from './types';
 
 const API_URL = 'http://localhost:9000';
 export const ACCESS_TOKEN_NAME = 'vendingAccessToken';
@@ -37,19 +44,19 @@ async function request(
   return response;
 }
 
-export async function me(): Promise<DBUser> {
+export async function me(): Promise<User> {
   return request('me', 'GET');
 }
 
-export async function getProducts(): Promise<DBProduct[]> {
+export async function getProducts(): Promise<Product[]> {
   return request('products', 'GET');
 }
 
-export async function postProduct(product: Product): Promise<DBProduct> {
+export async function postProduct(product: ProductCreate): Promise<Product> {
   return request('products', 'POST', JSON.stringify(product));
 }
 
-export async function updateProduct(product: Product): Promise<DBProduct> {
+export async function updateProduct(product: ProductCreate): Promise<Product> {
   return request('products', 'PUT', JSON.stringify(product));
 }
 
@@ -57,29 +64,22 @@ export async function deleteProduct(productName: string): Promise<boolean> {
   return request(`products/${productName}`, 'DELETE');
 }
 
-export async function signup(
-  username: string,
-  password: string,
-  role: string
-): Promise<DBUser> {
-  return request('users', 'POST', JSON.stringify({ username, password, role }));
+export async function signup(data: UserCreate): Promise<User> {
+  return request('users', 'POST', JSON.stringify(data));
 }
 
-export async function login(data: FormData): Promise<DBUser> {
+export async function login(data: FormData): Promise<User> {
   return request('login', 'POST', data, 'application/x-www-form-urlencoded');
 }
 
-export async function token(): Promise<DBUser> {
+export async function token(): Promise<User> {
   return request('token', 'GET');
 }
 
-export async function deposit(amount: number): Promise<DBUser> {
+export async function deposit(amount: number): Promise<User> {
   return request('deposit', 'POST', JSON.stringify({ amount }));
 }
 
-export async function buy(
-  product_name: string,
-  amount: number
-): Promise<BuyResponse> {
-  return request('buy', 'POST', JSON.stringify({ product_name, amount }));
+export async function buy(data: BuyRequest): Promise<BuyResponse> {
+  return request('buy', 'POST', JSON.stringify(data));
 }

@@ -7,6 +7,8 @@ import MenuItem from '@mui/material/MenuItem';
 import Button from '@mui/material/Button';
 import { useAuth } from './AuthProvider';
 
+import { UserCreate } from '../types';
+
 interface IAuthorize {
   type: 'login' | 'signup';
 }
@@ -84,7 +86,7 @@ const LoginForm = ({
 const SignupForm = ({
   action,
 }: {
-  action: (username: string, password: string, role: string) => Promise<void>;
+  action: (data: UserCreate) => Promise<void>;
 }) => {
   const [username, setUsername] = React.useState<string>('');
   const [password, setPassword] = React.useState<string>('');
@@ -110,7 +112,7 @@ const SignupForm = ({
     }
 
     try {
-      await action(username, password, role);
+      await action({ username, password, role });
     } catch (e: any) {
       setError(e.message);
     }

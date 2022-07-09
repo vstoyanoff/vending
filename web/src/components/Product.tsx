@@ -3,7 +3,7 @@ import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 
-import { DBProduct, DBUser } from '../types';
+import { Product as IProduct, User } from '../types';
 
 function Product({
   item,
@@ -11,8 +11,8 @@ function Product({
   buyProduct,
   deleteProduct,
 }: {
-  item: DBProduct;
-  user: DBUser;
+  item: IProduct;
+  user: User;
   buyProduct: (productName: string, amount: number) => void;
   deleteProduct: (productName: string) => void;
 }) {

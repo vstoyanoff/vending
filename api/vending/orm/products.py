@@ -13,4 +13,4 @@ class Product(Base):
     cost = Column(Integer, nullable=False)
     seller_id = Column(Integer, ForeignKey("users.id"))
 
-    # seller = relationship("User", back_populates="products")
+    seller = relationship("User", back_populates="products")

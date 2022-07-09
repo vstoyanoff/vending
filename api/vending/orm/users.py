@@ -13,4 +13,4 @@ class User(Base):
     deposit = Column(Integer, default=0)
     role = Column(String(20), nullable=False)
 
-    # products = relationship("Product", back_populates="seller_id")
+    products = relationship("Product", back_populates="seller")

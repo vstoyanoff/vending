@@ -1,12 +1,17 @@
-import sqlite3
-from enum import Enum
-from typing import Union
-from sqlite3 import Error, Connection
+import os
+
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
 
 db = "vending.sql"
+engine = None
+session = None
+
+Base = declarative_base()
 
 
-def _get_db_name(db_name: str = ""):
+def _db_name(db_name: str = ""):
     global db
 
     if not db_name:
@@ -16,72 +21,45 @@ def _get_db_name(db_name: str = ""):
     return db
 
 
-class FetchType(Enum):
-    ALL = 1
-    FIRST = 2
-    NONE = 3
+def get_engine():
+    global engine
+
+    if not engine:
+        db_name = _db_name()
+        engine = create_engine(
+            f"sqlite:///./{db_name}", connect_args={"check_same_thread": False}
+        )
+
+    return engine
 
 
-def connect() -> Connection:
-    """create a database connection to a SQLite database"""
-    conn = None
+def get_session():
+    global session
+
+    engine = get_engine()
+
+    if not session:
+        session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+    return session
+
+
+def get_db():
+    session = get_session()
+    db = session()
     try:
-        db_name = _get_db_name()
-        conn = sqlite3.connect(db_name)
-        return conn
-    except Error as e:
-        print(e)
-        raise e
-
-
-def execute(
-    sql: str, params: dict = {}, fetch: FetchType = FetchType.NONE
-) -> Union[list[str], str]:
-    try:
-        conn = connect()
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
-        cursor.execute(sql, params)
-        result = None
-
-        if fetch is FetchType.ALL:
-            result = cursor.fetchall()
-        elif fetch is FetchType.FIRST:
-            result = cursor.fetchone()
-        else:
-            result = "success"
-
-        conn.commit()
-        conn.close()
-        return result
-    except Error as e:
-        print(e)
-        raise e
+        return db
+    finally:
+        db.close()
 
 
 def setup(db: str = ""):
-    try:
-        db_name = _get_db_name(db)
-        sqlite3.connect(f"file:{db_name}?mode=rw", uri=True)
-    except sqlite3.OperationalError:
-        create_users_table_sql = """CREATE TABLE users(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username CHAR(20) NOT NULL,
-            password CHAR(20) NOT NULL,
-            deposit INTEGER DEFAULT 0,
-            role CHAR(20) NOT NULL
-        )"""
-        create_products_table_sql = """CREATE TABLE products(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            amount_available INTEGER NOT NULL,
-            cost INTEGER NOT NULL,
-            product_name CHAR(20) NOT NULL,
-            seller_id CHAR(20) NOT NULL
-        )"""
+    db_name = _db_name(db)
 
-        try:
-            execute(create_users_table_sql)
-            execute(create_products_table_sql)
-        except Error as e:
-            print(e)
-            pass
+    if not os.path.exists(f"./{db_name}"):
+        from vending.orm import users
+        from vending.orm import products
+
+        engine = get_engine()
+        users.Base.metadata.create_all(bind=engine)
+        products.Base.metadata.create_all(bind=engine)

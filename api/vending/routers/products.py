@@ -1,22 +1,25 @@
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
 
-from vending.db import actions
-from vending.models import BuyRequest, BuyResponse, DBUser, DBProduct, User, Product
+from vending.db import actions, get_db
+from vending.models import BuyRequest, BuyResponse, User, Product, ProductCreate
 from vending.routers.auth import authorize_user
 
 router = APIRouter()
 
 
-@router.get("/products", response_model=List[DBProduct], tags=["products"])
-def get_products(_=Depends(authorize_user)):
-    return actions.get_products()
+@router.get("/products", response_model=List[Product], tags=["products"])
+def get_products(db: Session = Depends(get_db), _=Depends(authorize_user)):
+    return actions.get_products(db)
 
 
-@router.get("/products/{product_name}", response_model=DBProduct, tags=["products"])
-def get_product(product_name: str, _=Depends(authorize_user)):
-    product = actions.get_product(product_name)
+@router.get("/products/{product_name}", response_model=Product, tags=["products"])
+def get_product(
+    product_name: str, _=Depends(authorize_user), db: Session = Depends(get_db)
+):
+    product = actions.get_product(db, product_name)
 
     if not product:
         raise HTTPException(
@@ -27,15 +30,19 @@ def get_product(product_name: str, _=Depends(authorize_user)):
     return product
 
 
-@router.post("/products", response_model=DBProduct, tags=["products"])
-def create_product(new_product: Product, user: User = Depends(authorize_user)):
+@router.post("/products", response_model=Product, tags=["products"])
+def create_product(
+    new_product: ProductCreate,
+    user: User = Depends(authorize_user),
+    db: Session = Depends(get_db),
+):
     if user.role != "seller":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="You need to be a seller to create products",
         )
 
-    db_product = actions.get_product(new_product.product_name)
+    db_product = actions.get_product(db, new_product.product_name)
 
     if db_product:
         raise HTTPException(
@@ -43,20 +50,19 @@ def create_product(new_product: Product, user: User = Depends(authorize_user)):
             detail="There is a product with the same name.",
         )
 
-    actions.create_product(new_product, user)
-
-    product = actions.get_product(new_product.product_name)
+    product = actions.create_product(db, new_product, user)
 
     return product
 
 
-@router.put("/products/{product_name}", response_model=DBProduct, tags=["products"])
+@router.put("/products/{product_name}", response_model=Product, tags=["products"])
 def update_product(
     product_name: str,
-    updated_product_data: Product,
+    updated_product_data: ProductCreate,
     user: User = Depends(authorize_user),
+    db: Session = Depends(get_db),
 ):
-    product = actions.get_product(product_name)
+    product = actions.get_product(db, product_name)
 
     if product.seller_id != user.id:
         raise HTTPException(
@@ -64,18 +70,18 @@ def update_product(
             detail="You are not authorized to perform this operation",
         )
 
-    params = product.dict()
-    params.update(updated_product_data.dict())
-    updated_product = DBProduct(**params)
-
-    actions.update_product(updated_product)
+    updated_product = actions.update_product(db, updated_product_data)
 
     return updated_product
 
 
 @router.delete("/products/{product_name}", response_model=bool, tags=["products"])
-def delete_product(product_name: str, user: User = Depends(authorize_user)):
-    db_product = actions.get_product(product_name)
+def delete_product(
+    product_name: str,
+    user: User = Depends(authorize_user),
+    db: Session = Depends(get_db),
+):
+    db_product = actions.get_product(db, product_name)
 
     if user.id != db_product.seller_id:
         raise HTTPException(
@@ -83,20 +89,24 @@ def delete_product(product_name: str, user: User = Depends(authorize_user)):
             detail="You are not authorized to perform this operation",
         )
 
-    actions.delete_product(db_product.id)
+    actions.delete_product(db, db_product.id)
 
     return True
 
 
 @router.post("/buy", response_model=BuyResponse, tags=["products"])
-def buy(buy_request: BuyRequest, user: DBUser = Depends(authorize_user)):
+def buy(
+    buy_request: BuyRequest,
+    user: User = Depends(authorize_user),
+    db: Session = Depends(get_db),
+):
     if user.role != "buyer":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="You must be a buyer in order to buy things and deposit coins",
         )
 
-    product = actions.get_product(buy_request.product_name)
+    product = actions.get_product(db, buy_request.product_name)
 
     if buy_request.amount > product.amount_available:
         raise HTTPException(
@@ -115,13 +125,14 @@ def buy(buy_request: BuyRequest, user: DBUser = Depends(authorize_user)):
     change = user.deposit - amount_to_pay
     new_amount = product.amount_available - buy_request.amount
 
-    updated_user = DBUser(**user.dict(exclude={"deposit"}), deposit=change)
-    actions.deposit(updated_user)
+    actions.deposit(db, user.username, change)
 
-    updated_product = DBProduct(
-        **product.dict(exclude={"amount_available"}), amount_available=new_amount
+    product_data = ProductCreate(
+        product_name=product.product_name,
+        cost=product.cost,
+        amount_available=new_amount,
     )
-    actions.update_product(updated_product)
+    actions.update_product(db, product_data)
 
     return BuyResponse(
         total_spent=amount_to_pay,

@@ -1,79 +1,83 @@
-from typing import List
+from sqlalchemy.orm import Session
 
-from vending.db import execute, FetchType
-from vending.models import DBProduct, DBUser, Product, RegisterUser
+from vending import models
+from vending.orm.users import User
+from vending.orm.products import Product
 
 
-def get_user(username: str) -> DBUser:
-    select_user_query = (
-        "SELECT id, username, deposit, role FROM users WHERE username = :username"
+def get_user(db: Session, username: str) -> User:
+    return db.query(User).filter(User.username == username).first()
+
+
+def get_user_password(db: Session, username: str) -> str:
+    user = db.query(User).filter(User.username == username).first()
+
+    return user.password
+
+
+def create_user(db: Session, user: models.UserCreate) -> User:
+    db_user = User(username=user.username, password=user.password, role=user.role)
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+
+    return db_user
+
+
+def deposit(db: Session, username: str, deposit: int) -> User:
+    db_user_query = db.query(User).filter(User.username == username)
+    db_user_query.update({"deposit": deposit})
+    db.commit()
+
+    db_user = db_user_query.first()
+    db.refresh(db_user)
+
+    return db_user
+
+
+def get_products(db: Session) -> list[Product]:
+    return db.query(Product).all()
+
+
+def get_product(db: Session, product_name: str) -> Product:
+    return db.query(Product).filter(Product.product_name == product_name).first()
+
+
+def create_product(
+    db: Session, new_product: models.Product, user: models.User
+) -> Product:
+    db_product = Product(
+        product_name=new_product.product_name,
+        amount_available=new_product.amount_available,
+        cost=new_product.cost,
+        seller_id=user.id,
     )
-    user = execute(
-        select_user_query, params={"username": username}, fetch=FetchType.FIRST
+    db.add(db_product)
+    db.commit()
+    db.refresh(db_product)
+
+    return db_product
+
+
+def update_product(db: Session, product: models.ProductCreate) -> Product:
+    db_product_query = db.query(Product).filter(
+        Product.product_name == product.product_name
     )
+    db_product_query.update(
+        {
+            "amount_available": product.amount_available,
+            "product_name": product.product_name,
+            "cost": product.cost,
+        }
+    )
+    db.commit()
 
-    if not user:
-        return None
+    db_product = db_product_query.first()
+    db.refresh(db_product)
 
-    return DBUser(**user)
-
-
-def get_user_password(username: str) -> str:
-    select_pwd_query = "SELECT password FROM users WHERE username = :username"
-    pwd = execute(
-        select_pwd_query, params={"username": username}, fetch=FetchType.FIRST
-    )["password"]
-
-    return pwd
-
-
-def create_user(user: RegisterUser):
-    create_user_sql = "INSERT INTO users(username, password, role) VALUES (:username, :password, :role)"  # noqa
-    params = {"username": user.username, "password": user.password, "role": user.role}
-    execute(create_user_sql, params)
+    return db_product
 
 
-def deposit(user: DBUser):
-    deposit_query = "UPDATE users SET deposit = :deposit WHERE id = :user_id"
-    params = {"deposit": user.deposit, "user_id": user.id}
-    execute(deposit_query, params)
-
-
-def get_products() -> List[DBProduct]:
-    select_products_query = "SELECT * FROM products"
-    db_products = execute(select_products_query, fetch=FetchType.ALL)
-    products = []
-
-    for p in db_products:
-        product = DBProduct(**p)
-        products.append(product)
-
-    return products
-
-
-def get_product(product_name: str) -> DBProduct:
-    select_product_data = "SELECT * FROM products WHERE product_name = :product_name"
-    params = {"product_name": product_name}
-    product = execute(select_product_data, params, fetch=FetchType.FIRST)
-
-    if not product:
-        return None
-
-    return DBProduct(**product)
-
-
-def create_product(new_product: Product, user: DBUser):
-    create_product_query = "INSERT INTO products (amount_available, cost, product_name, seller_id) VALUES (:amount_available, :cost, :product_name, :user_id)"  # noqa
-    params = new_product.dict()
-    params["user_id"] = user.id
-    execute(create_product_query, params=params)
-
-
-def update_product(product: DBProduct):
-    update_query = "UPDATE products SET amount_available = :amount_available, cost = :cost, product_name = :product_name WHERE id = :id"  # noqa
-    execute(update_query, params=product.dict())
-
-
-def delete_product(product_id: str):
-    delete_product_query = "DELETE FROM products WHERE id = :product_id"
-    execute(delete_product_query, params={"product_id": product_id})
+def delete_product(db: Session, product_id: int):
+    db.query(Product).filter(Product.id == product_id).delete()
+    db.commit()

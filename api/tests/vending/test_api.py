@@ -3,12 +3,12 @@ from unittest import mock
 import pytest
 
 from vending.main import app
-from vending.models import DBUser, DBProduct
+from vending.models import User, Product, ProductCreate
 from vending.routers.auth import authorize_user
 
 client = TestClient(app)
 
-mock_db_product = DBProduct(
+mock_db_product = Product(
     amount_available=100,
     cost=100,
     product_name="test_product",
@@ -16,7 +16,7 @@ mock_db_product = DBProduct(
     seller_id="1",
 )
 
-mock_db_user_buyer = DBUser(
+mock_db_user_buyer = User(
     username="test",
     role="buyer",
     id=1,
@@ -24,7 +24,7 @@ mock_db_user_buyer = DBUser(
     access_token="test_token",
 )
 
-mock_db_user_buyer_with_money = DBUser(
+mock_db_user_buyer_with_money = User(
     username="test",
     role="buyer",
     id=1,
@@ -32,7 +32,7 @@ mock_db_user_buyer_with_money = DBUser(
     access_token="test_token",
 )
 
-mock_db_user_seller = DBUser(
+mock_db_user_seller = User(
     username="test",
     role="seller",
     id=1,
@@ -68,8 +68,16 @@ class TestDeposit:
         ],
     )
     @mock.patch("vending.db.actions.deposit")
-    def test_deposit(self, mock_db_deposit, fastapi_dep, amount, detail):
+    def test_deposit_success(self, mock_db_deposit, fastapi_dep, amount, detail):
         with fastapi_dep(app).override({authorize_user: mock_db_user_buyer}):
+            user = User(
+                username="test",
+                role="buyer",
+                id=1,
+                deposit=50,
+                access_token="test_token",
+            )
+            mock_db_deposit.return_value = user
             response = client.post("/deposit", json={"amount": amount})
 
             if detail:
@@ -77,15 +85,7 @@ class TestDeposit:
                 assert response.json()["detail"][0]["msg"] == detail
             else:
                 assert response.status_code == 200
-                mock_db_deposit.assert_called_with(
-                    DBUser(
-                        username="test",
-                        role="buyer",
-                        id=1,
-                        deposit=50,
-                        access_token="test_token",
-                    )
-                )
+                mock_db_deposit.assert_called_with(mock.ANY, user.username, 50)
 
 
 class TestBuy:
@@ -151,7 +151,7 @@ class TestBuy:
     @mock.patch("vending.db.actions.get_product")
     @mock.patch("vending.db.actions.deposit")
     @mock.patch("vending.db.actions.update_product")
-    def test_buy_200(
+    def test_buy_success(
         self, mock_db_update_product, mock_db_deposit, mock_get_product, fastapi_dep
     ):
         with fastapi_dep(app).override({authorize_user: mock_db_user_buyer_with_money}):
@@ -168,13 +168,14 @@ class TestBuy:
                 "change": 0,
             }
             mock_db_update_product.assert_called_with(
-                DBProduct(
+                mock.ANY,
+                ProductCreate(
                     **mock_db_product.dict(exclude={"amount_available"}),
                     amount_available=99
-                )
+                ),
             )
             mock_db_deposit.assert_called_with(
-                DBUser(
-                    **mock_db_user_buyer_with_money.dict(exclude={"deposit"}), deposit=0
-                )
+                mock.ANY,
+                mock_db_user_buyer_with_money.username,
+                0,
             )

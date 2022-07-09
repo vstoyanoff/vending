@@ -4,10 +4,10 @@ from pydantic import BaseModel, validator
 from vending.utils import validate_values
 
 
-class Product(BaseModel):
+class ProductBase(BaseModel):
+    product_name: str
     amount_available: int
     cost: int
-    product_name: str
 
     @validator("amount_available")
     def validate_amount(cls, v):
@@ -20,12 +20,19 @@ class Product(BaseModel):
         return validate_values(v, "cost")
 
 
-class DBProduct(Product):
-    id: str
-    seller_id: str
+class ProductCreate(ProductBase):
+    pass
 
 
-class User(BaseModel):
+class Product(ProductBase):
+    id: int
+    seller_id: int
+
+    class Config:
+        orm_mode = True
+
+
+class UserBase(BaseModel):
     username: str
     role: str
 
@@ -42,14 +49,7 @@ class User(BaseModel):
         return v
 
 
-class DBUser(User):
-    id: str
-    deposit: int
-    access_token: Optional[str]
-    token_type: Optional[str]
-
-
-class RegisterUser(User):
+class UserCreate(UserBase):
     password: str
 
     @validator("password")
@@ -57,6 +57,17 @@ class RegisterUser(User):
         if len(v) < 6:
             raise ValueError("Password must be at least 6 chars long")
         return v
+
+
+class User(UserBase):
+    id: int
+    deposit: int
+    products: list[Product] = []
+    access_token: Optional[str]
+    token_type: Optional[str]
+
+    class Config:
+        orm_mode = True
 
 
 class DepositRequest(BaseModel):

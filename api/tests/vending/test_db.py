@@ -1,33 +1,30 @@
-from vending.db import actions
-from vending.models import DBUser, RegisterUser
+from vending.db import actions, get_db
+from vending.models import UserCreate
+
+db = get_db()
 
 
 class TestDB:
     def test_get_user(self):
-        db_user = actions.get_user("test_buyer")
+        db_user = actions.get_user(db, "test_buyer")
 
         assert db_user.username == "test_buyer"
 
     def test_get_user_none(self):
-        db_user = actions.get_user("no_user")
+        db_user = actions.get_user(db, "no_user")
 
         assert db_user == None
 
     def test_create_user(self):
-        actions.create_user(
-            RegisterUser(username="another_user", password="not-secure", role="buyer")
+        user = actions.create_user(
+            db, UserCreate(username="another_user", password="not-secure", role="buyer")
         )
 
-        db_user = actions.get_user("another_user")
-
-        assert db_user.username == "another_user"
+        assert user.username == "another_user"
 
     def test_deposit(self):
-        user = actions.get_user("test_buyer")
-        user = DBUser(**user.dict(exclude={"deposit"}), deposit=100)
+        user = actions.get_user(db, "test_buyer")
 
-        actions.deposit(user)
-
-        updated_user = actions.get_user("test_buyer")
+        updated_user = actions.deposit(db, user.username, 100)
 
         assert updated_user.deposit == 100

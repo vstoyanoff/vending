@@ -5,9 +5,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import jwt, JWTError
 from passlib.context import CryptContext
+from sqlalchemy.orm import Session
 
-from vending.db import actions
-from vending.models import DBUser, TokenData
+from vending.db import actions, get_db
+from vending.models import User, TokenData
 from vending.settings import ACCESS_TOKEN_EXPIRE_DAYS, ALGORITHM, SECRET_KEY, TOKEN_TYPE
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
@@ -35,7 +36,9 @@ def _verify_password(plain_password: str, hashed_password: str) -> str:
     return pwd_context.verify(plain_password, hashed_password)
 
 
-def authorize_user(token: str = Depends(oauth2_scheme)) -> DBUser:
+def authorize_user(
+    token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
+) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials. Your token might have been expired. Please login again.",
@@ -46,11 +49,13 @@ def authorize_user(token: str = Depends(oauth2_scheme)) -> DBUser:
     if username is None:
         raise credentials_exception
 
-    user = actions.get_user(username)
+    user = actions.get_user(db, username)
     if not user:
         raise credentials_exception
 
-    user = DBUser(**user.dict(), access_token=token, token_type=TOKEN_TYPE)
+    user.access_token = token
+    user.token_type = TOKEN_TYPE
+
     return user
 
 
@@ -66,20 +71,23 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
         expire = datetime.utcnow() + timedelta(days=5)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
     return encoded_jwt
 
 
 # Routes
 
 
-@router.get("/me", response_model=DBUser, tags=["auth"])
-def token(user: DBUser = Depends(authorize_user)):
+@router.get("/me", response_model=User, tags=["auth"])
+def token(user: User = Depends(authorize_user)):
     return user
 
 
-@router.post("/login", response_model=DBUser, tags=["auth"])
-def login(form_data: OAuth2PasswordRequestForm = Depends()):
-    user = actions.get_user(form_data.username)
+@router.post("/login", response_model=User, tags=["auth"])
+def login(
+    form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
+):
+    user = actions.get_user(db, form_data.username)
     incorrect_credentials = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Incorrect username or password",
@@ -89,7 +97,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
     if not user:
         raise incorrect_credentials
 
-    db_password = actions.get_user_password(user.username)
+    db_password = actions.get_user_password(db, user.username)
     if not _verify_password(form_data.password, db_password):
         raise incorrect_credentials
 
@@ -98,10 +106,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
         data={"sub": user.username}, expires_delta=access_token_expires
     )
 
-    user = DBUser(
-        **user.dict(exclude={"access_token", "token_type"}),
-        access_token=access_token,
-        token_type=TOKEN_TYPE
-    )
+    user.access_token = access_token
+    user.token_type = TOKEN_TYPE
 
     return user

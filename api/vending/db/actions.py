@@ -15,19 +15,14 @@ def get_user(username: str) -> DBUser:
     if not user:
         return None
 
-    return DBUser(
-        id=user[0],
-        username=user[1],
-        deposit=user[2],
-        role=user[3],
-    )
+    return DBUser(**user)
 
 
 def get_user_password(username: str) -> str:
     select_pwd_query = "SELECT password FROM users WHERE username = :username"
     pwd = execute(
         select_pwd_query, params={"username": username}, fetch=FetchType.FIRST
-    )[0]
+    )["password"]
 
     return pwd
 
@@ -50,9 +45,7 @@ def get_products() -> List[DBProduct]:
     products = []
 
     for p in db_products:
-        product = DBProduct(
-            id=p[0], amount_available=p[1], cost=p[2], product_name=p[3], seller_id=p[4]
-        )
+        product = DBProduct(**p)
         products.append(product)
 
     return products
@@ -66,13 +59,7 @@ def get_product(product_name: str) -> DBProduct:
     if not product:
         return None
 
-    return DBProduct(
-        id=product[0],
-        amount_available=product[1],
-        cost=product[2],
-        product_name=product[3],
-        seller_id=product[4],
-    )
+    return DBProduct(**product)
 
 
 def create_product(new_product: Product, user: DBUser):

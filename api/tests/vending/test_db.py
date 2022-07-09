@@ -4,9 +4,9 @@ from vending.models import DBUser, RegisterUser
 
 class TestDB:
     def test_get_user(self):
-        db_user = actions.get_user("test_buyer").dict()
+        db_user = actions.get_user("test_buyer")
 
-        assert db_user["username"] == "test_buyer"
+        assert db_user.username == "test_buyer"
 
     def test_get_user_none(self):
         db_user = actions.get_user("no_user")
@@ -20,7 +20,7 @@ class TestDB:
 
         db_user = actions.get_user("another_user")
 
-        assert db_user.dict()["username"] == "another_user"
+        assert db_user.username == "another_user"
 
     def test_deposit(self):
         user = actions.get_user("test_buyer")
@@ -30,4 +30,4 @@ class TestDB:
 
         updated_user = actions.get_user("test_buyer")
 
-        assert updated_user.dict()["deposit"] == 100
+        assert updated_user.deposit == 100

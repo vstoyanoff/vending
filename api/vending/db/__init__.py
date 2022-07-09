@@ -39,6 +39,7 @@ def execute(
 ) -> Union[list[str], str]:
     try:
         conn = connect()
+        conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         cursor.execute(sql, params)
         result = None
